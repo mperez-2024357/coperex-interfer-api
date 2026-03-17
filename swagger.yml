@@ -1,0 +1,496 @@
+openapi: 3.0.0
+info:
+  title: COPEREX Interfer API
+  description: API para gestión integral de empresas participantes en la Feria Interfer - COPEREX
+  version: 1.0.0
+  contact:
+    name: COPEREX Support
+    email: support@coperex.com
+  license:
+    name: ISC
+
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Local Development Server
+  - url: https://api.coperex.com/api/v1
+    description: Production Server
+
+tags:
+  - name: Authentication
+    description: Endpoints relacionados con autenticación y gestión de usuarios
+  - name: Companies
+    description: Endpoints para gestión de empresas registradas
+  - name: Reports
+    description: Endpoints para generación de reportes
+  - name: Health
+    description: Verificación del estado del servicio
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Verificar estado del servicio
+      operationId: getHealth
+      responses:
+        '200':
+          description: El servicio está funcionando correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: Healthy
+                  timestamp:
+                    type: string
+                    format: date-time
+                  service:
+                    type: string
+                    example: COPEREX Interfer API
+
+  /auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Registrar nuevo usuario
+      operationId: registerUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - email
+                - password
+                - role
+              properties:
+                username:
+                  type: string
+                  example: john_doe
+                email:
+                  type: string
+                  format: email
+                  example: john@example.com
+                password:
+                  type: string
+                  format: password
+                  example: SecurePassword123!
+                role:
+                  type: string
+                  enum: [admin, user, supervisor]
+                  example: user
+      responses:
+        '201':
+          description: Usuario registrado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Datos inválidos o usuario ya existe
+        '500':
+          description: Error interno del servidor
+
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Iniciar sesión
+      operationId: loginUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: john@example.com
+                password:
+                  type: string
+                  format: password
+                  example: SecurePassword123!
+      responses:
+        '200':
+          description: Inicio de sesión exitoso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  token:
+                    type: string
+                    example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                  user:
+                    $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Credenciales inválidas
+        '500':
+          description: Error interno del servidor
+
+  /companies:
+    get:
+      tags:
+        - Companies
+      summary: Obtener lista de todas las empresas
+      operationId: getCompanies
+      parameters:
+        - name: status
+          in: query
+          description: Filtrar por estado (Activo, Inactivo)
+          schema:
+            type: string
+            enum: [Activo, Inactivo]
+        - name: businessCategory
+          in: query
+          description: Filtrar por categoría de negocio
+          schema:
+            type: string
+        - name: page
+          in: query
+          description: Número de página para paginación
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          description: Cantidad de registros por página
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Lista de empresas obtenida exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Company'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '500':
+          description: Error interno del servidor
+      security:
+        - BearerAuth: []
+
+    post:
+      tags:
+        - Companies
+      summary: Registrar nueva empresa
+      operationId: createCompany
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompanyInput'
+      responses:
+        '201':
+          description: Empresa registrada exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Company'
+        '400':
+          description: Datos inválidos
+        '500':
+          description: Error interno del servidor
+      security:
+        - BearerAuth: []
+
+  /companies/{id}:
+    get:
+      tags:
+        - Companies
+      summary: Obtener detalles de una empresa específica
+      operationId: getCompanyById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID de la empresa
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Datos de la empresa obtenidos exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Company'
+        '404':
+          description: Empresa no encontrada
+        '500':
+          description: Error interno del servidor
+      security:
+        - BearerAuth: []
+
+    put:
+      tags:
+        - Companies
+      summary: Actualizar información de una empresa
+      operationId: updateCompany
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID de la empresa
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompanyInput'
+      responses:
+        '200':
+          description: Empresa actualizada exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Company'
+        '400':
+          description: Datos inválidos
+        '404':
+          description: Empresa no encontrada
+        '500':
+          description: Error interno del servidor
+      security:
+        - BearerAuth: []
+
+    delete:
+      tags:
+        - Companies
+      summary: Eliminar una empresa
+      operationId: deleteCompany
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID de la empresa
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Empresa eliminada exitosamente
+        '404':
+          description: Empresa no encontrada
+        '500':
+          description: Error interno del servidor
+      security:
+        - BearerAuth: []
+
+  /reports/excel:
+    get:
+      tags:
+        - Reports
+      summary: Generar reporte de empresas en Excel
+      operationId: generateCompaniesExcel
+      description: Genera un archivo Excel con información detallada de todas las empresas registradas, incluyendo análisis, estadísticas y gráficos
+      responses:
+        '200':
+          description: Archivo Excel generado exitosamente
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: No hay empresas registradas
+        '500':
+          description: Error durante la generación del reporte
+      security:
+        - BearerAuth: []
+
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum: [admin, user, supervisor]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+
+    Company:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: Empresa XYZ S.A.
+        businessCategory:
+          type: string
+          example: Tecnología
+        yearsOfExperience:
+          type: integer
+          example: 15
+        impactLevel:
+          type: string
+          enum: [Bajo, Medio, Alto, Muy Alto]
+          example: Alto
+        contactPerson:
+          type: string
+          example: Juan Pérez
+        email:
+          type: string
+          format: email
+          example: contacto@empresaxyz.com
+        phone:
+          type: string
+          example: "+34 91 123 4567"
+        website:
+          type: string
+          format: uri
+          example: https://www.empresaxyz.com
+        description:
+          type: string
+          example: Descripción de la empresa
+        status:
+          type: string
+          enum: [Activo, Inactivo]
+          example: Activo
+        registrationDate:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CompanyInput:
+      type: object
+      required:
+        - name
+        - businessCategory
+        - contactPerson
+        - email
+        - phone
+      properties:
+        name:
+          type: string
+          example: Empresa XYZ S.A.
+        businessCategory:
+          type: string
+          example: Tecnología
+        yearsOfExperience:
+          type: integer
+          example: 15
+        impactLevel:
+          type: string
+          enum: [Bajo, Medio, Alto, Muy Alto]
+          example: Alto
+        contactPerson:
+          type: string
+          example: Juan Pérez
+        email:
+          type: string
+          format: email
+          example: contacto@empresaxyz.com
+        phone:
+          type: string
+          example: "+34 91 123 4567"
+        website:
+          type: string
+          format: uri
+          example: https://www.empresaxyz.com
+        description:
+          type: string
+          example: Descripción de la empresa
+        status:
+          type: string
+          enum: [Activo, Inactivo]
+          example: Activo
+
+    Pagination:
+      type: object
+      properties:
+        currentPage:
+          type: integer
+        totalPages:
+          type: integer
+        totalRecords:
+          type: integer
+        recordsPerPage:
+          type: integer
+
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        error:
+          type: string
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtenido al iniciar sesión
