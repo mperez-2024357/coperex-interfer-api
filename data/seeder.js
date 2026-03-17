@@ -3,10 +3,7 @@ import { Role, UserRole } from '../src/auth/role.model.js';
 import { hashPassword } from '../utils/password-utils.js';
 import { ADMIN_ROLE } from '../helpers/role-constants.js';
 
-/**
- * Seed del usuario administrador y rol ADMIN_ROLE
- * Se ejecuta automáticamente al iniciar la app
- */
+
 export const seedAdminUser = async () => {
   try {
     let adminRole = await Role.findOne({
@@ -19,7 +16,7 @@ export const seedAdminUser = async () => {
       });
       console.log('✓ Rol ADMIN_ROLE creado correctamente');
     } else {
-      console.log('ℹ️  Rol ADMIN_ROLE ya existe');
+      console.log('Rol ADMIN_ROLE ya existe');
     }
 
     const adminExists = await User.findOne({
